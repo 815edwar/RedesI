@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     int svr_local_port = 20855;
     int error = 0;
     int c, sock;
-    int opcion;
+    char opcion[2000];
 
     while( ( c = getopt( argc, argv, "d: p: l:" ) ) != -1 ) {
         switch(c) {
@@ -88,123 +88,172 @@ int main(int argc, char *argv[]) {
         printf("\n 10. Low paper warning. ");
         printf("\n 11. Printer Error. ");
         printf("\n 12. Paper-Out condition. ");
-        printf("\n 13. Introducir una operacion a realizar: ");
+        printf("\n 13. Introducir una operacion a realizar. ");
+        printf("\n 14. Salir. ");
         printf("\n\n Introduzca su opcion: ");
-        scanf("%d", &opcion);
-        switch(opcion){
+        fgets(opcion, 2000, stdin);
+        switch(atoi(opcion)){
         char message1[2000];
         case 1:
-            strcpy(message1, "Communication Offline. \n" );
+            strcpy(message1, "Communication Offline" );
             //message1 = "Communication Offline. \n";
             // Enviando informacion de la opcion 1
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 2:
-            strcpy(message1, "Communication Error.\n");
+            strcpy(message1, "Communication error");
             // Enviando informacion de la opcion 2
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 3:
-            strcpy(message1, "Low Cash alert.\n");
+            strcpy(message1, "Low Cash alert");
             // Enviando informacion de la opcion 3
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 4:
-            strcpy(message1, "Running Out of notes in cassette. \n");
+            strcpy(message1, "Running Out of notes in cassette");
             // Enviando informacion de la opcion 4
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 5:
-            strcpy(message1,"Empty.\n");
+            strcpy(message1,"empty");
             // Enviando informacion de la opcion 5
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 6: 
-            strcpy(message1,"Service mode entered.\n");   
+            strcpy(message1,"Service mode entered");   
             // Enviando informacion de la opcion 6
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 7:
-            strcpy(message1,"Service mode left.\n");
+            strcpy(message1,"Service mode left");
             // Enviando informacion de la opcion 7
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 8:
-            strcpy(message1,"Device did not answer as expected. \n");
+            strcpy(message1,"device did not answer as expected");
             // Enviando informacion de la opcion 8
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 9:
-            strcpy(message1,"The protocol was cancelled. \n");
+            strcpy(message1,"The protocol was cancelled");
             // Enviando informacion de la opcion 9
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 10:
-            strcpy(message1,"Low paper warning. \n");
+            strcpy(message1,"Low Paper warning");
             // Enviando informacion de la opcion 10
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 11:
-            strcpy(message1,"Printer Error. \n");
+            strcpy(message1,"Printer Error");
             // Enviando informacion de la opcion 11
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 12:
-            strcpy(message1,"Paper-Out condition. \n");
+            strcpy(message1,"Paper-out condition");
             // Enviando informacion de la opcion 12
             if(send(sock, message1, strlen(message1), 0) < 0){
                 puts("Solicitud enviada");
             }
             CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
             break;
         case 13:
             printf("-------------------------\n");
             printf(" Introduzca la operacion: ");
-            printf("-------------------------\n");
-            fgets(message1, strlen(message1), stdin);
+            fgets(message1, 2000, stdin);
             // Enviando informacion de la opcion 13
             if (send(sock, message1, strlen(message1), 0) < 0){
-                puts("Solicigys");
+                puts("Solicitud Fallida");
                 return 1;
             }
-            puts("Escribiste\n");
+            CLEAR(message1);
+            printf("-------------------------\n");
+            printf("Enviando mensaje a SVR...\n");
+            printf("-------------------------\n");
+            break;
+        case 14:
+            printf("-------------------------\n");
+            printf("Hasta luego vuelva pronto\n");
+            return 0;
+        default:
+            printf("-------------------------\n");
+            printf("La opcion introducida es invalida. Vuelva a intentarlo\n");
             break;
         }
+
+        CLEAR(opcion);
     }
-    while(opcion != 14);
+    while(1);
     //close(sock);
     //return 0;
 
