@@ -15,6 +15,7 @@
 #include <getopt.h>         //get arguments
 #include <stdlib.h>         //atoi
 #include <string.h>         //strcmp
+#include <math.h>
 
 int main(int argc, char *argv[]) {
     char *central_module = ""; 
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
     int svr_local_port = 20855;
     int error = 0;
     int c, sock;
+
+    int opcion;
 
     while( ( c = getopt( argc, argv, "d: p: l:" ) ) != -1 ) {
         switch(c) {
@@ -71,7 +74,114 @@ int main(int argc, char *argv[]) {
     puts("Connected\n");
      
     //keep communicating with server
-    while(1) {
+    do{
+        printf("\n 1. Communication Offline.");
+        printf("\n 2. Communication Error.");
+        printf("\n 3. Low Cash alert.");
+        printf("\n 4. Running Out of notes in cassette.");
+        printf("\n 5. Empty.");
+        printf("\n 6. Service mode entered. ");
+        printf("\n 7. Service mode left. ");
+        printf("\n 8. Device did not answer as expected. ");
+        printf("\n 9. The protocol was cancelled. ");
+        printf("\n 10. Low paper warning. ");
+        printf("\n 11. Printer Error. ");
+        printf("\n 12. Paper-Out condition. ");
+        printf("\n\n Introduzca su opcion: ");
+        scanf("%d", &opcion);
+        switch(opcion){
+        case 1:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 2:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion2
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 3:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion3
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 4:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 5:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 6:    
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 7:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 8:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 9:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 10:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 11:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        case 12:
+            //fgets(message, 1000,stdin);
+            // Enviando informacion de la opcion1
+            if(send(sock, message, strlen(message), 0) < 0){
+            puts("Solicitud enviada");
+            return 1;
+            }
+        }
+    }
+    while(opcion != 13);
+    //close(sock);
+    return 0;
+
+    
+    /*while(1) {
         printf("Enter message to send:\n");
         fgets(message, 1000, stdin);
 
@@ -83,6 +193,6 @@ int main(int argc, char *argv[]) {
     }
      
     close(sock);
-    return 0;
+    return 0;*/
 
 }
