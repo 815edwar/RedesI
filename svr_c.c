@@ -17,15 +17,16 @@
 #include <string.h>         //strcmp
 #include <math.h>
 
+#define CLEAR(x) memset(x, '\0', 2000);
+
 int main(int argc, char *argv[]) {
     char *central_module = ""; 
-    char message[1000], server_reply[2000]; 
+    char message1[1000], server_reply[2000]; 
     struct sockaddr_in server;
     int svr_port = -1;
     int svr_local_port = 20855;
     int error = 0;
     int c, sock;
-
     int opcion;
 
     while( ( c = getopt( argc, argv, "d: p: l:" ) ) != -1 ) {
@@ -87,96 +88,121 @@ int main(int argc, char *argv[]) {
         printf("\n 10. Low paper warning. ");
         printf("\n 11. Printer Error. ");
         printf("\n 12. Paper-Out condition. ");
+        printf("\n 13. Introducir una operacion a realizar: ");
         printf("\n\n Introduzca su opcion: ");
         scanf("%d", &opcion);
         switch(opcion){
+        char * message;
         case 1:
-            //fgets(message, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
+            message = "Communication Offline. \n";
+            // Enviando informacion de la opcion 1
+            if(send(sock, message, strlen(message), 0) < 0){
             puts("Solicitud enviada");
-            return 1;
+            CLEAR(message);
             }
+            break;
         case 2:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion2
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Communication Error.\n";
+            // Enviando informacion de la opcion 2
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 3:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion3
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Low Cash alert.\n";
+            // Enviando informacion de la opcion 3
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 4:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Running Out of notes in cassette. \n";
+            // Enviando informacion de la opcion 4
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 5:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Empty.\n";
+            // Enviando informacion de la opcion 5
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
-        case 6:    
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            break;
+        case 6: 
+            message = "Service mode entered.\n";   
+            // Enviando informacion de la opcion 6
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 7:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Service mode left.\n";
+            // Enviando informacion de la opcion 7
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 8:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Device did not answer as expected. \n";
+            // Enviando informacion de la opcion 8
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 9:
-            fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "The protocol was cancelled. \n";
+            // Enviando informacion de la opcion 9
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 10:
-            fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Low paper warning. \n";
+            // Enviando informacion de la opcion 10
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 11:
-            fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Printer Error. \n";
+            // Enviando informacion de la opcion 11
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
         case 12:
-            //fgets(opcion, 1000,stdin);
-            // Enviando informacion de la opcion1
-            if(send(sock, opcion, strlen(opcion), 0) < 0){
-            puts("Solicitud enviada");
-            return 1;
+            message = "Paper-Out condition. \n";
+            // Enviando informacion de la opcion 12
+            if(send(sock, message, strlen(message), 0) < 0){
+                puts("Solicitud enviada");
+                CLEAR(message);
             }
+            break;
+        case 13:
+            printf(" Introduzca la operacion: ");
+            scanf("%s", message1);
+            //strcat(message1,"\n");
+            //fgets(message1, 1000, stdin);
+            // Enviando informacion de la opcion 13
+            if(send(sock, message1, strlen(message1), 0) < 0){
+                puts("Soliciud fallida");
+                CLEAR(message);
+            }
+            break;
         }
     }
-    while(opcion != 13);
+    while(opcion != 14);
     //close(sock);
     //return 0;
 
