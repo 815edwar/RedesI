@@ -16,13 +16,17 @@
 #include <unistd.h>          //write
 #include <pthread.h>         //for threading, link with lpthread
 #include <regex.h>           //for catch patterns in message of ATM's
+#include <time.h>             //for timestamps in binnacles entries
 
-//the thread function
+/* Declaracion de funcion que maneja conexiones del servidor con un ATM */
 void *connection_handler(void *);
 
+/* Definicion de funcion que vacia bufer de memoria donde se guardan los mensajes */
 #define CLEAR(x) memset(x, '\0', 2000);
+
 FILE *binnacle_fd;
 char *binnacle = "";
+int serial = 0;
 
 int main(int argc, char *argv[]) {
     int socket_desc, client_sock, c, *new_sock, opt;
@@ -77,7 +81,7 @@ int main(int argc, char *argv[]) {
     /* Se enlaza el socket a la direccion de entrada 
      * en caso de qie no se logre enlazar, se aborta la ejecucion del programa */
     if (bind(socket_desc,(struct sockaddr *) &server , sizeof(server)) < 0) {
-        perror("El enlace del socket con la direccion de entrada fallo. ");
+        perror("El enlace del socket con la direccion de entrada fallo. \n");
         exit(0);
     }
 
@@ -99,68 +103,138 @@ int main(int argc, char *argv[]) {
         *new_sock = client_sock;
         
         /* Se crea un hilo que estara conectado al ATM al que se acaba de aceptar la conexion 
-        */ 
+         * en caso de error se aborta la ejecucion del programa */ 
         if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void *) new_sock) < 0) {
-            perror("could not create thread");
-            return 1;
+            perror("Fallo la creacion de nuevo hilo de conexion con ATM. \n");
+            exit(0);
         }
         
         /* Espera que los hilos creados terminen su ejecucion para terminar el */ 
-        pthread_join( sniffer_thread , NULL);
-        puts("Handler assigned");
+        // pthread_join( sniffer_thread , NULL);
+        puts("Manejador asignado a ATM...\n");
     }
-     
+    
+    /* Si el descriptor del socket quedo como -1 siginica que fallo el accept.
+     * En dicho caso, se aborta la ejecucion del programa */
     if (client_sock < 0) {
-        perror("accept failed");
-        return 1;
+        perror("Fallo aceptar la conexion con ATM.\n");
+        exit(0);
     }
 
+    /* Si el archivo de la bitacora sigue abierto, se cierra antes de terminar
+     * la ejecucion del programa */
     fclose(binnacle_fd);
      
     return 0;
 }
 
-int catch_pattern(char *message) {
+int verify_match(char *message, char *pattern) {
     regex_t regex;
     int reti;
     char msgbuf[100];
 
-    reti = regcomp(&regex, ".*domingo", 0);
+    /* Se compila la regex, en caso de error, aborta la ejecucion del programa */ 
+    reti = regcomp(&regex, pattern, 0);
     if (reti) {
-        fprintf(stderr, "Could not compile regex\n");
-        exit(1);
+        perror("No se pudo compilar la expresion regular\n");
+        exit(0);
     }
 
-    /* Execute regular expression */
-    reti = regexec(&regex, "edwar y domingo y mafer", 0, NULL, 0);
+    /* Ejecuta expresion regular */
+    reti = regexec(&regex, message, 0, NULL, 0);
     if (!reti) {
-        puts("Match");
+        regfree(&regex);
+        return 1;
     }
     else if (reti == REG_NOMATCH) {
-        puts("No match");
+        regfree(&regex);
+        return 0;
     }
     else {
         regerror(reti, &regex, msgbuf, sizeof(msgbuf));
-        fprintf(stderr, "Regex match failed: %s\n", msgbuf);
-        exit(1);
+        fprintf(stderr, "Fallo el match con expresion regular: %s\n", msgbuf);
+        exit(0);
     }
-
-    /* Free memory allocated to the pattern buffer by regcomp() */
-    regfree(&regex);
 }
 
-/*
- * This will handle connection for each client
- * */
+/* Devuelve el id del patron de advertencia que contiene un mensaje. En caso
+ * de que no contenga ninguno, devuelve -1 */ 
+int catch_pattern(char *message) {
+    char *patterns[12] = {".*Communication Offline", ".*Communication error",
+                          ".*Low Cash alert", ".*Running Out of notes in cassete",
+                          ".*empty", ".*Service mode entered", ".*Service mode left",
+                          ".*device did not answer as expected",
+                          ".*The protocol was cancelled", ".*Low Paper warning",
+                          ".*Printer Error", ".*Paper-out condition"};
+    
+    for (int i = 0; i < 12; i++) {
+        if ( verify_match(message, patterns[i]) ) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *ip, int pattern_id) {
+    char buffer[2000], message[2000];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    CLEAR(message);
+
+    serial++;
+    strcat(message, "SERIAL: ");
+    sprintf(buffer, "%d", serial);
+    strcat(message, buffer);
+    strcat(message, "\nFECHA: ");
+    sprintf(buffer, "%d-%d-%d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    strcat(message, buffer);
+    CLEAR(buffer);
+    strcat(message, "\nHORA: ");
+    sprintf(buffer, "%d:%d:%d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+    strcat(message, buffer);
+    CLEAR(buffer);
+    strcat(message, "\nATM ID: ");
+    strcat(message, ip);
+    strcat(message, "\nEVENT ID: ");
+    sprintf(buffer, "%d", pattern_id);
+    strcat(message, buffer);
+    CLEAR(buffer);
+
+    fputs("\n", binnacle_fd);
+    puts("");
+    puts("Nueva transaccion registrada: ");
+    puts("-------------------------------------------");
+    fputs(message, binnacle_fd);
+    printf("%s", message);
+    strcat(buffer, "\nPATTERN: ");
+    strcat(buffer, pattern);
+    strcat(buffer, "\nMESSAGE: ");
+    strcat(buffer, client_message);
+    fputs(buffer, binnacle_fd);
+    printf("%s", buffer);
+    fputs("\n", binnacle_fd);
+    puts("-------------------------------------------");
+    puts("");
+
+    CLEAR(message);
+}
+
+/* Maneeja la conexion para cada cliente */
 void *connection_handler(void *socket_desc) {
-    //Get the socket descriptor
     int sock = *(int *) socket_desc;
-    int read_size, port;
-    char *message , client_message[2000];
+    int read_size, port, pattern_id;
+    char client_message[2000];
     struct sockaddr_storage addr;
     char ipstr[INET6_ADDRSTRLEN];
     socklen_t len;
+    char *patterns[12] = {"Communication Offline", "Communication error",
+                          "Low Cash alert", "Running Out of notes in cassete",
+                          "empty", "Service mode entered", "Service mode left",
+                          "device did not answer as expected",
+                          "The protocol was cancelled", "Low Paper warning",
+                          "Printer Error", "Paper-out condition"};
 
+    /* Obtiene el ip del ATM con el que esta conectado */ 
     len = sizeof addr;
     getpeername(sock, (struct sockaddr *) &addr, &len);
 
@@ -168,31 +242,40 @@ void *connection_handler(void *socket_desc) {
     port = ntohs(s->sin_port);
     inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
 
-    printf("%s\n", ipstr);
+    printf("Conectado al ATM con id: %s\n", ipstr);
      
-    //Receive a message from client
+    /* Recibe mensajes del ATM */ 
     while( (read_size = recv(sock, client_message, 2000, 0)) > 0 ) {
-        //Send the message back to client
-        // write(sock , client_message , strlen(client_message));
+        
+        pattern_id = catch_pattern(client_message);
+
+        /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
+         * entrada. */
         if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
             perror("ERROR: No se pudo abrir el archivo de la bitacora");
         }
 
-        puts(client_message);
-        fputs(client_message, binnacle_fd);
-        fclose(binnacle_fd);
+        if (pattern_id == -1) {
+            write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
+        }
+        else {
+            write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
+        }
+        
         CLEAR(client_message);
+        fclose(binnacle_fd);
+
     }
      
     if (read_size == 0) {
-        puts("Client disconnected");
+        printf("ATM de id: %s desconectado.\n", ipstr);
         fflush(stdout);
     }
     else if (read_size == -1) {
-        perror("recv failed");
+        perror("Fallo en funcion de recv");
     }
          
-    //Free the socket pointer   
+    /* Se libera el descriptor del socket */
     free(socket_desc);
      
     return 0;
