@@ -16,6 +16,7 @@
 #include <stdlib.h>         //atoi
 #include <string.h>         //strcmp
 #include <math.h>
+#include <unistd.h> // for close
 
 #define CLEAR(x) memset(x, '\0', 2000);
 
@@ -244,6 +245,7 @@ int main(int argc, char *argv[]) {
         case 14:
             printf("-------------------------\n");
             printf("Hasta luego vuelva pronto\n");
+            close(sock);
             return 0;
         default:
             printf("-------------------------\n");

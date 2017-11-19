@@ -17,7 +17,7 @@
 #include <pthread.h>         //for threading, link with lpthread
 #include <regex.h>           //for catch patterns in message of ATM's
 #include <time.h>             //for timestamps in binnacles entries
-
+#include <getopt.h>
 /* Declaracion de funcion que maneja conexiones del servidor con un ATM */
 void *connection_handler(void *);
 
@@ -162,7 +162,7 @@ int verify_match(char *message, char *pattern) {
  * de que no contenga ninguno, devuelve -1 */ 
 int catch_pattern(char *message) {
     char *patterns[12] = {".*Communication Offline", ".*Communication error",
-                          ".*Low Cash alert", ".*Running Out of notes in cassete",
+                          ".*Low Cash alert", ".*Running Out of notes in cassette",
                           ".*empty", ".*Service mode entered", ".*Service mode left",
                           ".*device did not answer as expected",
                           ".*The protocol was cancelled", ".*Low Paper warning",
@@ -214,7 +214,7 @@ void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *i
     fputs(buffer, binnacle_fd);
     printf("%s", buffer);
     fputs("\n", binnacle_fd);
-    puts("-------------------------------------------");
+    puts("\n-------------------------------------------");
     puts("");
 
     CLEAR(message);

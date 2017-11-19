@@ -7,7 +7,7 @@
 #  *                                                                       *
 #  *************************************************************************/
 
-CFLAGS	= -pthread
+CFLAGS	= -pthread -std=c99
 CC	= gcc
 OBJS= svr_s.o svr_c.o
 
