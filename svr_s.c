@@ -27,6 +27,7 @@ void *connection_handler(void *);
 FILE *binnacle_fd;
 char *binnacle = "";
 int serial = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[]) {
     int socket_desc, client_sock, c, *new_sock, opt;
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
      
     /* Se prepara la direccion de entrada del socket */
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr("192.168.2.20");
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
     server.sin_port = htons( svr_port );
     
     /* Se enlaza el socket a la direccion de entrada 
@@ -249,6 +250,8 @@ void *connection_handler(void *socket_desc) {
         
         pattern_id = catch_pattern(client_message);
 
+        pthread_mutex_lock(&mutex);
+
         /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
          * entrada. */
         if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
@@ -265,14 +268,17 @@ void *connection_handler(void *socket_desc) {
         CLEAR(client_message);
         fclose(binnacle_fd);
 
+        pthread_mutex_unlock(&mutex);
+
     }
      
     if (read_size == 0) {
-        printf("ATM de id: %s desconectado.\n", ipstr);
+        printf("\nATM de id: %s desconectado.\n", ipstr);
         fflush(stdout);
     }
     else if (read_size == -1) {
-        perror("Fallo en funcion de recv");
+        perror("Fallo en funcion de recv.");
+        exit(0);
     }
          
     /* Se libera el descriptor del socket */
