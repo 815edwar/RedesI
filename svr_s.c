@@ -23,12 +23,20 @@
 void *connection_handler(void *);
 
 /* Definicion de funcion que vacia bufer de memoria donde se guardan los mensajes */
-#define CLEAR(x) memset(x, '\0', 2000);
+#define CLEAR(x) memset(x, '\0', 4096);
 
 FILE *binnacle_fd;
 char *binnacle = "";
 int serial = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+char *patterns[14] = {"Communication Online", "Communication Offline", 
+                      "Communication error", "Low Cash alert", 
+                      "Running Out of notes in cassete", "empty", 
+                      "Service mode entered", "Service mode left",
+                      "device did not answer as expected",
+                      "The protocol was cancelled", "Low Paper warning",
+                      "Printer Error", "Paper-out condition", "N/A"};
+
 
 int main(int argc, char *argv[]) {
     int socket_desc, client_sock, c, *new_sock, opt;
@@ -162,9 +170,10 @@ int verify_match(char *message, char *pattern) {
 /* Devuelve el id del patron de advertencia que contiene un mensaje. En caso
  * de que no contenga ninguno, devuelve -1 */ 
 int catch_pattern(char *message) {
-    char *patterns[12] = {".*Communication Offline", ".*Communication error",
-                          ".*Low Cash alert", ".*Running Out of notes in cassette",
-                          ".*empty", ".*Service mode entered", ".*Service mode left",
+    char *patterns[13] = {".*Communication Online", ".*Communication Offline", 
+                          ".*Communication error", ".*Low Cash alert", 
+                          ".*Running Out of notes in cassette", ".*empty", 
+                          ".*Service mode entered", ".*Service mode left",
                           ".*device did not answer as expected",
                           ".*The protocol was cancelled", ".*Low Paper warning",
                           ".*Printer Error", ".*Paper-out condition"};
@@ -177,44 +186,52 @@ int catch_pattern(char *message) {
     return -1;
 }
 
-void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *ip, int pattern_id) {
-    char buffer[2000], message[2000];
+void write_entry(int pattern_id, char *client_message, char *ip) {
+    char buffer[4096], message[4096];
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     CLEAR(message);
 
     serial++;
+
+    fputs("\n", binnacle_fd);
+
     strcat(message, "SERIAL: ");
     sprintf(buffer, "%d", serial);
     strcat(message, buffer);
+    CLEAR(buffer);
+
     strcat(message, "\nFECHA: ");
     sprintf(buffer, "%d-%d-%d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
     strcat(message, buffer);
     CLEAR(buffer);
+    
     strcat(message, "\nHORA: ");
     sprintf(buffer, "%d:%d:%d", tm.tm_hour, tm.tm_min, tm.tm_sec);
     strcat(message, buffer);
     CLEAR(buffer);
+    
     strcat(message, "\nATM ID: ");
     strcat(message, ip);
+
     strcat(message, "\nEVENT ID: ");
     sprintf(buffer, "%d", pattern_id);
     strcat(message, buffer);
     CLEAR(buffer);
 
+    strcat(message, "\nPATTERN: ");
+    strcat(message, patterns[pattern_id]);
+
+    strcat(message, "\nMESSAGE: ");
+    strcat(message, client_message);
+
+    fputs(message, binnacle_fd);
     fputs("\n", binnacle_fd);
+
     puts("");
     puts("Nueva transaccion registrada: ");
     puts("-------------------------------------------");
-    fputs(message, binnacle_fd);
     printf("%s", message);
-    strcat(buffer, "\nPATTERN: ");
-    strcat(buffer, pattern);
-    strcat(buffer, "\nMESSAGE: ");
-    strcat(buffer, client_message);
-    fputs(buffer, binnacle_fd);
-    printf("%s", buffer);
-    fputs("\n", binnacle_fd);
     puts("\n-------------------------------------------");
     puts("");
 
@@ -225,17 +242,11 @@ void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *i
 void *connection_handler(void *socket_desc) {
     int sock = *(int *) socket_desc;
     int read_size, port, pattern_id, ret;
-    char client_message[2000];
+    char client_message[4096];
     struct sockaddr_storage addr;
     char ipstr[INET6_ADDRSTRLEN];
     socklen_t len;
     struct pollfd fd;
-    char *patterns[12] = {"Communication Offline", "Communication error",
-                          "Low Cash alert", "Running Out of notes in cassete",
-                          "empty", "Service mode entered", "Service mode left",
-                          "device did not answer as expected",
-                          "The protocol was cancelled", "Low Paper warning",
-                          "Printer Error", "Paper-out condition"};
 
     /* Obtiene el ip del ATM con el que esta conectado */
     len = sizeof addr;
@@ -249,7 +260,7 @@ void *connection_handler(void *socket_desc) {
 
     pthread_mutex_lock(&mutex);
     binnacle_fd = fopen(binnacle, "a+");
-    write_entry(binnacle_fd, "Communication Online.", "Communication Online.", ipstr, 15);
+    write_entry(0, "Communication Online.", ipstr);
     fclose(binnacle_fd);
     pthread_mutex_unlock(&mutex);
 
@@ -272,12 +283,12 @@ void *connection_handler(void *socket_desc) {
                     perror("ERROR: No se pudo abrir el archivo de la bitacora");
                 }
 
-                write_entry(binnacle_fd, patterns[0], patterns[0], ipstr, 0);
+                write_entry(2, patterns[2], ipstr);
                 fclose(binnacle_fd);
                 pthread_mutex_unlock(&mutex);
                 break;
             default:
-                read_size = recv(sock, client_message, 2000, 0);
+                read_size = recv(sock, client_message, 4096, 0);
                 if (read_size > 0) {
                     pattern_id = catch_pattern(client_message);
 
@@ -290,10 +301,10 @@ void *connection_handler(void *socket_desc) {
                     }
 
                     if (pattern_id == -1) {
-                        write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
+                        write_entry(pattern_id, client_message, ipstr);
                     }
                     else {
-                        write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
+                        write_entry(pattern_id, client_message, ipstr);
                     }
                     
                     CLEAR(client_message);
@@ -304,7 +315,7 @@ void *connection_handler(void *socket_desc) {
                 else if (read_size == 0) {
                     pthread_mutex_lock(&mutex);
                     binnacle_fd = fopen(binnacle, "a+");
-                    write_entry(binnacle_fd, "Communication Offline.", "Communication Offline.", ipstr, 0);
+                    write_entry(1, "Communication Offline.", ipstr);
                     fclose(binnacle_fd);
                     pthread_mutex_unlock(&mutex);
                     printf("\nATM de id: %s desconectado.\n", ipstr);
