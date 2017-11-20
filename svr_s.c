@@ -18,6 +18,7 @@
 #include <regex.h>           //for catch patterns in message of ATM's
 #include <time.h>             //for timestamps in binnacles entries
 #include <getopt.h>
+#include <sys/poll.h>
 /* Declaracion de funcion que maneja conexiones del servidor con un ATM */
 void *connection_handler(void *);
 
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
      
     /* Se prepara la direccion de entrada del socket */
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_addr.s_addr = inet_addr("192.168.0.108");
     server.sin_port = htons( svr_port );
     
     /* Se enlaza el socket a la direccion de entrada 
@@ -244,42 +245,109 @@ void *connection_handler(void *socket_desc) {
     inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
 
     printf("Conectado al ATM con id: %s\n", ipstr);
-     
-    /* Recibe mensajes del ATM */ 
-    while( (read_size = recv(sock, client_message, 2000, 0)) > 0 ) {
-        
-        pattern_id = catch_pattern(client_message);
 
-        pthread_mutex_lock(&mutex);
+    struct pollfd fd;
+    int ret;
 
-        /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
-         * entrada. */
-        if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
-            perror("ERROR: No se pudo abrir el archivo de la bitacora");
+    fd.fd = sock; // your socket handler 
+    fd.events = POLLIN;
+    int conectado = 1;
+    while(conectado){
+        /* Esperamos un tiempo hasta que se reciba un mensaje
+        * */
+        ret = poll(&fd, 1, 4000); // ARREGLAR CON EL TIEMPO DEL ARCHIVO DE CONF
+        switch (ret) {
+            case -1:
+                // Error
+                break;
+            case 0:
+                pthread_mutex_lock(&mutex);
+
+                /* Se abre la bitácora para escribir la alerta
+                 * */
+                if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
+                    perror("ERROR: No se pudo abrir el archivo de la bitacora");
+                }
+                write_entry(binnacle_fd, patterns[0], patterns[0], ipstr, 0);
+                fclose(binnacle_fd);
+                pthread_mutex_unlock(&mutex);
+                break;
+            default:
+                /* Recibe mensajes del ATM */ 
+                read_size = recv(sock, client_message, 2000, 0);// get your data
+                if( read_size > 0){
+                    pattern_id = catch_pattern(client_message);
+
+                    pthread_mutex_lock(&mutex);
+
+                    /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
+                     * entrada. */
+                    if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
+                        perror("ERROR: No se pudo abrir el archivo de la bitacora");
+                    }
+
+                    if (pattern_id == -1) {
+                        write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
+                    }
+                    else {
+                        write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
+                    }
+                    
+                    CLEAR(client_message);
+                    fclose(binnacle_fd);
+
+                    pthread_mutex_unlock(&mutex);
+  
+                }
+                else if (read_size == 0) {
+                    printf("\nATM de id: %s desconectado.\n", ipstr);
+                    fflush(stdout);
+                    conectado = 0;
+                }
+                else if (read_size == -1) {
+                    perror("Fallo en funcion de recv.");
+                    exit(0);
+                }
+                break;
         }
-
-        if (pattern_id == -1) {
-            write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
-        }
-        else {
-            write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
-        }
-        
-        CLEAR(client_message);
-        fclose(binnacle_fd);
-
-        pthread_mutex_unlock(&mutex);
 
     }
      
-    if (read_size == 0) {
-        printf("\nATM de id: %s desconectado.\n", ipstr);
-        fflush(stdout);
-    }
-    else if (read_size == -1) {
-        perror("Fallo en funcion de recv.");
-        exit(0);
-    }
+    // /* Recibe mensajes del ATM */ 
+    // while( (read_size = recv(sock, client_message, 2000, 0)) > 0 ) {
+        
+    //     pattern_id = catch_pattern(client_message);
+
+    //     pthread_mutex_lock(&mutex);
+
+    //     /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
+    //      * entrada. */
+    //     if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
+    //         perror("ERROR: No se pudo abrir el archivo de la bitacora");
+    //     }
+
+    //     if (pattern_id == -1) {
+    //         write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
+    //     }
+    //     else {
+    //         write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
+    //     }
+        
+    //     CLEAR(client_message);
+    //     fclose(binnacle_fd);
+
+    //     pthread_mutex_unlock(&mutex);
+
+    // }
+     
+    // if (read_size == 0) {
+    //     printf("\nATM de id: %s desconectado.\n", ipstr);
+    //     fflush(stdout);
+    // }
+    // else if (read_size == -1) {
+    //     perror("Fallo en funcion de recv.");
+    //     exit(0);
+    // }
          
     /* Se libera el descriptor del socket */
     free(socket_desc);
