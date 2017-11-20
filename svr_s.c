@@ -29,8 +29,8 @@ FILE *binnacle_fd;
 FILE *configuration_fd;
 char *binnacle = "";
 int serial = 0;
-char email_to[1024];
-int timeout = 300000;
+// char *email_to = "edwarypz@gmail.com";
+// int timeout = 300000;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 char *patterns[14] = {"Communication Online", "Communication Offline", 
                       "Communication error", "Low Cash alert", 
@@ -48,9 +48,6 @@ int main(int argc, char *argv[]) {
     int error = 0;
     char buffer[1024];
     char *ch, cha;
-
-    memset(buffer, '\0', 1024);
-    memset(email_to, '\0', 1024);
 
     /* Obtencion de parametros de entrada. Necesita especificarse el puerto
      * por donde estara escuchando el servidor y la bitacora donde se estaran
@@ -79,35 +76,7 @@ int main(int argc, char *argv[]) {
                "-b <archivo_bitácora>"
                "\n\tTodos los parametros entre [] son opcionales.\n");
         exit(0);
-    }
-
-    if ((configuration_fd = fopen("configuration.txt", "r")) < 0) {
-        perror("ERROR: No se pudo abrir el archivo de la bitacora");
-    }
-
-    printf("Abrio configuration\n");
-
-    cha = getc(configuration_fd);
-    while (cha != '\n' && cha != EOF) {
-        strcat(buffer, &cha);
-        cha = getc(configuration_fd);
-    }
-
-    printf("\n\n\n%s\n\n\n", buffer);
-
-    strcat(email_to, buffer);
-
-    memset(buffer, '\0', 1024);
-    cha = getc(configuration_fd);
-    while (cha != '\n' && cha != EOF) {
-        strcat(buffer, &cha);
-        cha = getc(configuration_fd);
-    }
-
-
-    timeout = atoi(buffer);
-
-    printf("%s\n %d\n", email_to, timeout);    
+    }  
 
     /* Se crea un nuevo socket para la conexion                   
      * Si Ocurre un error durante la creacion del mismo se aborta 
@@ -274,7 +243,8 @@ void write_entry(int pattern_id, char *client_message, char *ip) {
     if (pattern_id == 1 || pattern_id == 2) {
         strcat(buffer, "echo '");
         strcat(buffer, message);
-        strcat(buffer, "' | mail -s 'ALERTA DE ATM' edwarypz@gmail.com");
+        strcat(buffer, "' | mail -s 'ALERTA DE ATM' ");
+        strcat(buffer, "edwarypz@gmail.com");
         system(buffer);
     }
 
@@ -314,7 +284,7 @@ void *connection_handler(void *socket_desc) {
 
     while (conectado) {
 
-        ret = poll(&fd, 1, 60000);
+        ret = poll(&fd, 1, 300000);
         switch (ret) {
             case -1:
                 perror("OCURRIO ERROR CON FUNCION poll()");
