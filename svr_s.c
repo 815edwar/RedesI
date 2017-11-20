@@ -235,6 +235,13 @@ void write_entry(int pattern_id, char *client_message, char *ip) {
     puts("\n-------------------------------------------");
     puts("");
 
+    if (pattern_id == 1 || pattern_id == 2) {
+        strcat(buffer, "echo '");
+        strcat(buffer, message);
+        strcat(buffer, "' | mail -s 'ALERTA DE ATM' edwarypz@gmail.com");
+        system(buffer);
+    }
+
     CLEAR(message);
 }
 
@@ -271,7 +278,7 @@ void *connection_handler(void *socket_desc) {
 
     while (conectado) {
 
-        ret = poll(&fd, 1, 4000);
+        ret = poll(&fd, 1, 60000);
         switch (ret) {
             case -1:
                 perror("OCURRIO ERROR CON FUNCION poll()");
@@ -301,7 +308,7 @@ void *connection_handler(void *socket_desc) {
                     }
 
                     if (pattern_id == -1) {
-                        write_entry(pattern_id, client_message, ipstr);
+                        write_entry(13, client_message, ipstr);
                     }
                     else {
                         write_entry(pattern_id, client_message, ipstr);

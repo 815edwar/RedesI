@@ -257,22 +257,5 @@ int main(int argc, char *argv[]) {
         CLEAR(opcion);
     }
     while(1);
-    //close(sock);
-    //return 0;
-
-    
-    /*while(1) {
-        printf("Enter message to send:\n");
-        fgets(message, 1000, stdin);
-
-        //Send some data
-        if (send(sock, message, strlen(message), 0) < 0) {
-            puts("Send failed");
-            return 1;
-        }
-    }
-     
-    close(sock);
-    return 0;*/
 
 }
