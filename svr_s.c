@@ -26,8 +26,11 @@ void *connection_handler(void *);
 #define CLEAR(x) memset(x, '\0', 4096);
 
 FILE *binnacle_fd;
+FILE *configuration_fd;
 char *binnacle = "";
 int serial = 0;
+char email_to[1024];
+int timeout = 300000;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 char *patterns[14] = {"Communication Online", "Communication Offline", 
                       "Communication error", "Low Cash alert", 
@@ -43,6 +46,11 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in server, client;
     int svr_port = -1;
     int error = 0;
+    char buffer[1024];
+    char *ch, cha;
+
+    memset(buffer, '\0', 1024);
+    memset(email_to, '\0', 1024);
 
     /* Obtencion de parametros de entrada. Necesita especificarse el puerto
      * por donde estara escuchando el servidor y la bitacora donde se estaran
@@ -72,6 +80,34 @@ int main(int argc, char *argv[]) {
                "\n\tTodos los parametros entre [] son opcionales.\n");
         exit(0);
     }
+
+    if ((configuration_fd = fopen("configuration.txt", "r")) < 0) {
+        perror("ERROR: No se pudo abrir el archivo de la bitacora");
+    }
+
+    printf("Abrio configuration\n");
+
+    cha = getc(configuration_fd);
+    while (cha != '\n' && cha != EOF) {
+        strcat(buffer, &cha);
+        cha = getc(configuration_fd);
+    }
+
+    printf("\n\n\n%s\n\n\n", buffer);
+
+    strcat(email_to, buffer);
+
+    memset(buffer, '\0', 1024);
+    cha = getc(configuration_fd);
+    while (cha != '\n' && cha != EOF) {
+        strcat(buffer, &cha);
+        cha = getc(configuration_fd);
+    }
+
+
+    timeout = atoi(buffer);
+
+    printf("%s\n %d\n", email_to, timeout);    
 
     /* Se crea un nuevo socket para la conexion                   
      * Si Ocurre un error durante la creacion del mismo se aborta 
@@ -178,7 +214,7 @@ int catch_pattern(char *message) {
                           ".*The protocol was cancelled", ".*Low Paper warning",
                           ".*Printer Error", ".*Paper-out condition"};
     
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 13; i++) {
         if ( verify_match(message, patterns[i]) ) {
             return i;
         }
