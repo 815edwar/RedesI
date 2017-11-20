@@ -277,6 +277,7 @@ void *connection_handler(void *socket_desc) {
                 pthread_mutex_unlock(&mutex);
                 break;
             default:
+                read_size = recv(sock, client_message, 2000, 0);
                 if (read_size > 0) {
                     pattern_id = catch_pattern(client_message);
 
