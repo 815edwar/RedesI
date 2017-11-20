@@ -18,6 +18,7 @@
 #include <math.h>
 #include <unistd.h> // for close
 
+
 #define CLEAR(x) memset(x, '\0', 2000);
 
 int main(int argc, char *argv[]) {

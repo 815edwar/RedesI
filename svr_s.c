@@ -222,6 +222,7 @@ void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *i
 
 /* Maneeja la conexion para cada cliente */
 void *connection_handler(void *socket_desc) {
+    clock_t begin = clock();
     int sock = *(int *) socket_desc;
     int read_size, port, pattern_id;
     char client_message[2000];
@@ -235,7 +236,7 @@ void *connection_handler(void *socket_desc) {
                           "The protocol was cancelled", "Low Paper warning",
                           "Printer Error", "Paper-out condition"};
 
-    /* Obtiene el ip del ATM con el que esta conectado */ 
+    /* Obtiene el ip del ATM con el que esta conectado */
     len = sizeof addr;
     getpeername(sock, (struct sockaddr *) &addr, &len);
 
@@ -244,10 +245,16 @@ void *connection_handler(void *socket_desc) {
     inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
 
     printf("Conectado al ATM con id: %s\n", ipstr);
+
+    pthread_mutex_lock(&mutex);
+    binnacle_fd = fopen(binnacle, "a+");
+    write_entry(binnacle_fd, "Communication Online.", "Communication Online.", ipstr, 15);
+    fclose(binnacle_fd);
+    pthread_mutex_unlock(&mutex);
      
     /* Recibe mensajes del ATM */ 
     while( (read_size = recv(sock, client_message, 2000, 0)) > 0 ) {
-        
+        printf("hola");
         pattern_id = catch_pattern(client_message);
 
         pthread_mutex_lock(&mutex);
@@ -270,9 +277,16 @@ void *connection_handler(void *socket_desc) {
 
         pthread_mutex_unlock(&mutex);
 
+        begin = clock();
+        printf("%f\n", (double)begin);
     }
      
     if (read_size == 0) {
+        pthread_mutex_lock(&mutex);
+        binnacle_fd = fopen(binnacle, "a+");
+        write_entry(binnacle_fd, "Communication Offline.", "Communication Offline.", ipstr, 0);
+        fclose(binnacle_fd);
+        pthread_mutex_unlock(&mutex);
         printf("\nATM de id: %s desconectado.\n", ipstr);
         fflush(stdout);
     }
@@ -282,6 +296,7 @@ void *connection_handler(void *socket_desc) {
     }
          
     /* Se libera el descriptor del socket */
+
     free(socket_desc);
      
     return 0;
