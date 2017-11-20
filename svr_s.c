@@ -222,13 +222,13 @@ void write_entry(FILE *binnacle_fd, char *pattern, char *client_message, char *i
 
 /* Maneeja la conexion para cada cliente */
 void *connection_handler(void *socket_desc) {
-    clock_t begin = clock();
     int sock = *(int *) socket_desc;
-    int read_size, port, pattern_id;
+    int read_size, port, pattern_id, ret;
     char client_message[2000];
     struct sockaddr_storage addr;
     char ipstr[INET6_ADDRSTRLEN];
     socklen_t len;
+    struct pollfd fd;
     char *patterns[12] = {"Communication Offline", "Communication error",
                           "Low Cash alert", "Running Out of notes in cassete",
                           "empty", "Service mode entered", "Service mode left",
@@ -251,52 +251,72 @@ void *connection_handler(void *socket_desc) {
     write_entry(binnacle_fd, "Communication Online.", "Communication Online.", ipstr, 15);
     fclose(binnacle_fd);
     pthread_mutex_unlock(&mutex);
+
+    fd.fd = sock;
+    fd.events = POLLIN;
      
-    /* Recibe mensajes del ATM */ 
-    while( (read_size = recv(sock, client_message, 2000, 0)) > 0 ) {
-        printf("hola");
-        pattern_id = catch_pattern(client_message);
+    int conectado = 1;
 
-        pthread_mutex_lock(&mutex);
+    while (conectado) {
 
-        /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
-         * entrada. */
-        if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
-            perror("ERROR: No se pudo abrir el archivo de la bitacora");
+        ret = poll(&fd, 1, 4000);
+        switch (ret) {
+            case -1:
+                perror("OCURRIO ERROR CON FUNCION poll()");
+                exit(1);
+            case 0:
+                pthread_mutex_lock(&mutex);
+
+                if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
+                    perror("ERROR: No se pudo abrir el archivo de la bitacora");
+                }
+
+                write_entry(binnacle_fd, patterns[0], patterns[0], ipstr, 0);
+                fclose(binnacle_fd);
+                pthread_mutex_unlock(&mutex);
+                break;
+            default:
+                if (read_size > 0) {
+                    pattern_id = catch_pattern(client_message);
+
+                    pthread_mutex_lock(&mutex);
+
+                    /* Una vez recibido el mensaje, abre la bitacora para transcribir la nueva
+                     * entrada. */
+                    if ((binnacle_fd = fopen(binnacle, "a+")) < 0) {
+                        perror("ERROR: No se pudo abrir el archivo de la bitacora");
+                    }
+
+                    if (pattern_id == -1) {
+                        write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
+                    }
+                    else {
+                        write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
+                    }
+                    
+                    CLEAR(client_message);
+                    fclose(binnacle_fd);
+
+                    pthread_mutex_unlock(&mutex);
+                }
+                else if (read_size == 0) {
+                    pthread_mutex_lock(&mutex);
+                    binnacle_fd = fopen(binnacle, "a+");
+                    write_entry(binnacle_fd, "Communication Offline.", "Communication Offline.", ipstr, 0);
+                    fclose(binnacle_fd);
+                    pthread_mutex_unlock(&mutex);
+                    printf("\nATM de id: %s desconectado.\n", ipstr);
+                    fflush(stdout);
+                    conectado = 0;
+                }
+                else if (read_size == -1) {
+                    perror("Fallo en funcion de recv.");
+                    exit(0);
+                }
         }
-
-        if (pattern_id == -1) {
-            write_entry(binnacle_fd, "------------", client_message, ipstr, pattern_id);
-        }
-        else {
-            write_entry(binnacle_fd, patterns[pattern_id], client_message, ipstr, pattern_id);
-        }
-        
-        CLEAR(client_message);
-        fclose(binnacle_fd);
-
-        pthread_mutex_unlock(&mutex);
-
-        begin = clock();
-        printf("%f\n", (double)begin);
-    }
-     
-    if (read_size == 0) {
-        pthread_mutex_lock(&mutex);
-        binnacle_fd = fopen(binnacle, "a+");
-        write_entry(binnacle_fd, "Communication Offline.", "Communication Offline.", ipstr, 0);
-        fclose(binnacle_fd);
-        pthread_mutex_unlock(&mutex);
-        printf("\nATM de id: %s desconectado.\n", ipstr);
-        fflush(stdout);
-    }
-    else if (read_size == -1) {
-        perror("Fallo en funcion de recv.");
-        exit(0);
-    }
+    }    
          
     /* Se libera el descriptor del socket */
-
     free(socket_desc);
      
     return 0;
