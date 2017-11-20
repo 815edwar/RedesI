@@ -25,10 +25,12 @@ void *connection_handler(void *);
 /* Definicion de funcion que vacia bufer de memoria donde se guardan los mensajes */
 #define CLEAR(x) memset(x, '\0', 4096);
 
-FILE *binnacle_fd;
-char *binnacle = "";
-int serial = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+FILE *binnacle_fd; // Guardara el archivo de entrada
+char *binnacle = ""; // Guadara el String que guarda el archivo de entrada
+int serial = 0; // Irá guardando el serial de cada mensaje recibido por el SVR
+/* Se declara un semáforo mutex para sincronizar la escritura en el archivo de la bitácora.*/
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
+/* Se definen los patrones que se deben reconocer */
 char *patterns[14] = {"Communication Online", "Communication Offline", 
                       "Communication error", "Low Cash alert", 
                       "Running Out of notes in cassete", "empty", 
@@ -39,10 +41,12 @@ char *patterns[14] = {"Communication Online", "Communication Offline",
 
 
 int main(int argc, char *argv[]) {
+    /* Enteros que denotan descriptores de sockets y variables para determinar datos
+    de la línea de comandos */
     int socket_desc, client_sock, c, *new_sock, opt;
-    struct sockaddr_in server, client;
-    int svr_port = -1;
-    int error = 0;
+    struct sockaddr_in server, client; // Estructuras necesarias para hacer la conexión con el socket
+    int svr_port = -1; // Guardará el puerto de conexión, recibido por la línea de comandos
+    int error = 0; // Entero para designar cuando ocurra un error en la entrada
 
     /* Obtencion de parametros de entrada. Necesita especificarse el puerto
      * por donde estara escuchando el servidor y la bitacora donde se estaran
@@ -107,10 +111,10 @@ int main(int argc, char *argv[]) {
      * crea un nuevo hilo encargado de manejar dicha conexion */
     while ( (client_sock = accept(socket_desc, (struct sockaddr *) &client, (socklen_t *) &c)) ) {
         puts("Conexion aceptada...\n");
-        
-        pthread_t sniffer_thread;
+    
+        pthread_t sniffer_thread; // Guarda el nuevo hilo que manejará la conexión
         new_sock = malloc(1);
-        *new_sock = client_sock;
+        *new_sock = client_sock; // Apunta al socket con el cual se aceptó la solicitud.
         
         /* Se crea un hilo que estara conectado al ATM al que se acaba de aceptar la conexion 
          * en caso de error se aborta la ejecucion del programa */ 
@@ -137,10 +141,11 @@ int main(int argc, char *argv[]) {
      
     return 0;
 }
-
+/* Recibe un mensaje en message y un patrón en pattern, que si hece match
+*  con el mansaje entonces devuelve 1, de lo contrario devuelve 0*/
 int verify_match(char *message, char *pattern) {
-    regex_t regex;
-    int reti;
+    regex_t regex; //Se declara una expresión regular
+    int reti; // Entero que guardará la compilación de la expresión regulares y su ejecución
     char msgbuf[100];
 
     /* Se compila la regex, en caso de error, aborta la ejecucion del programa */ 
@@ -170,6 +175,7 @@ int verify_match(char *message, char *pattern) {
 /* Devuelve el id del patron de advertencia que contiene un mensaje. En caso
  * de que no contenga ninguno, devuelve -1 */ 
 int catch_pattern(char *message) {
+    /* Se declaram un arreglo con los posibles patrones que pueden hacer match*/
     char *patterns[13] = {".*Communication Online", ".*Communication Offline", 
                           ".*Communication error", ".*Low Cash alert", 
                           ".*Running Out of notes in cassette", ".*empty", 
@@ -177,22 +183,22 @@ int catch_pattern(char *message) {
                           ".*device did not answer as expected",
                           ".*The protocol was cancelled", ".*Low Paper warning",
                           ".*Printer Error", ".*Paper-out condition"};
-    
-    for (int i = 0; i < 12; i++) {
+    /* Se busca el mensaje en el arreglo patterns*/
+    for (int i = 0; i < 13; i++) {
         if ( verify_match(message, patterns[i]) ) {
             return i;
         }
     }
     return -1;
 }
-
+/* Función que escribe en pantalla y en el archivo de bitácora los datos del mensaje recibido*/
 void write_entry(int pattern_id, char *client_message, char *ip) {
     char buffer[4096], message[4096];
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     CLEAR(message);
 
-    serial++;
+    serial++; // Se aumenta el serial para que varía dependiendo del orden de llegada de los mensajes
 
     fputs("\n", binnacle_fd);
 
@@ -247,6 +253,7 @@ void write_entry(int pattern_id, char *client_message, char *ip) {
 
 /* Maneeja la conexion para cada cliente */
 void *connection_handler(void *socket_desc) {
+    /* Se definen las variables necesarias para la recepción de los mensajes del ATM*/
     int sock = *(int *) socket_desc;
     int read_size, port, pattern_id, ret;
     char client_message[4096];
@@ -264,8 +271,8 @@ void *connection_handler(void *socket_desc) {
     inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
 
     printf("Conectado al ATM con id: %s\n", ipstr);
-
-    pthread_mutex_lock(&mutex);
+    /* Primera escritura en la bitácora para alarmar la conexión*/
+    pthread_mutex_lock(&mutex); 
     binnacle_fd = fopen(binnacle, "a+");
     write_entry(0, "Communication Online.", ipstr);
     fclose(binnacle_fd);
@@ -273,16 +280,18 @@ void *connection_handler(void *socket_desc) {
 
     fd.fd = sock;
     fd.events = POLLIN;
-     
-    int conectado = 1;
+    /* Entero que si vale 0 significa que se cerro la conexión y no se deben esperar más mensajes*/
+    int conectado = 1; 
 
     while (conectado) {
-
+        /* Espera por un mensaje de recv durante un tiempo establecido en milisegundos*/
         ret = poll(&fd, 1, 60000);
         switch (ret) {
+            /* Si ret es -1 ocurrio un error en la funcion */
             case -1:
                 perror("OCURRIO ERROR CON FUNCION poll()");
                 exit(1);
+            /* Si ret es 0 es porque pasó el tiempo de espera */
             case 0:
                 pthread_mutex_lock(&mutex);
 
@@ -294,8 +303,12 @@ void *connection_handler(void *socket_desc) {
                 fclose(binnacle_fd);
                 pthread_mutex_unlock(&mutex);
                 break;
+            /* De lo contrario se recibió un nuevo mensaje*/
             default:
+                /* Guarda un descriptor que indica el estado del mensaje leído*/
                 read_size = recv(sock, client_message, 4096, 0);
+                /* Si read_size es 0 significa que mayor a 0 se recibió un mensaje,
+                *  por lo que se abre el archivo y se escribe el nuevo mensaje usando un semaforo*/ 
                 if (read_size > 0) {
                     pattern_id = catch_pattern(client_message);
 
@@ -319,7 +332,9 @@ void *connection_handler(void *socket_desc) {
 
                     pthread_mutex_unlock(&mutex);
                 }
+                /* Si read_size es 0 significa que se cerro la conexión por parte del ATM*/
                 else if (read_size == 0) {
+                    /* Se escribe en la bitácora el mensaje de desconexión*/
                     pthread_mutex_lock(&mutex);
                     binnacle_fd = fopen(binnacle, "a+");
                     write_entry(1, "Communication Offline.", ipstr);
@@ -329,6 +344,7 @@ void *connection_handler(void *socket_desc) {
                     fflush(stdout);
                     conectado = 0;
                 }
+                // Ocurrió un error
                 else if (read_size == -1) {
                     perror("Fallo en funcion de recv.");
                     exit(0);
