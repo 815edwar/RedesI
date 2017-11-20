@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
                "-b <archivo_bitácora>"
                "\n\tTodos los parametros entre [] son opcionales.\n");
         exit(0);
-    }
+    }  
 
     /* Se crea un nuevo socket para la conexion                   
      * Si Ocurre un error durante la creacion del mismo se aborta 
@@ -244,7 +244,8 @@ void write_entry(int pattern_id, char *client_message, char *ip) {
     if (pattern_id == 1 || pattern_id == 2) {
         strcat(buffer, "echo '");
         strcat(buffer, message);
-        strcat(buffer, "' | mail -s 'ALERTA DE ATM' edwarypz@gmail.com");
+        strcat(buffer, "' | mail -s 'ALERTA DE ATM' ");
+        strcat(buffer, "edwarypz@gmail.com");
         system(buffer);
     }
 
@@ -285,7 +286,7 @@ void *connection_handler(void *socket_desc) {
 
     while (conectado) {
         /* Espera por un mensaje de recv durante un tiempo establecido en milisegundos*/
-        ret = poll(&fd, 1, 60000);
+        ret = poll(&fd, 1, 300000);
         switch (ret) {
             /* Si ret es -1 ocurrio un error en la funcion */
             case -1:
