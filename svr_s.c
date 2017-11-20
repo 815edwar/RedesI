@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
      
     /* Se prepara la direccion de entrada del socket */
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr("192.168.0.108");
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
     server.sin_port = htons( svr_port );
     
     /* Se enlaza el socket a la direccion de entrada 
@@ -247,7 +247,6 @@ void *connection_handler(void *socket_desc) {
 
     printf("Conectado al ATM con id: %s\n", ipstr);
 
-<<<<<<< HEAD
     pthread_mutex_lock(&mutex);
     binnacle_fd = fopen(binnacle, "a+");
     write_entry(binnacle_fd, "Communication Online.", "Communication Online.", ipstr, 15);
